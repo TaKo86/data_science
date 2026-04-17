@@ -17,6 +17,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix, f1_score , classification_report
+from sklearn.impute import SimpleImputer
 
 df = pd.read_csv('star_classification.csv') # converting the dataset into a pandas dataframe
 
@@ -110,15 +111,73 @@ knn = KNeighborsClassifier(n_neighbors = 5, metric = 'euclidean')
 #finds 5 similar objects in the dataset and picks whatever class the majority belong to
 knn.fit(x_train, y_train)
 # target variarbles
-
+print("knn done")
 
 #decision tree
 #learns a set of rules to determine a class by its charateristics
 dt = DecisionTreeClassifier(criterion = 'gini', max_depth = 10, random_state = 42)
 dt.fit(x_train, y_train)
+print("decision tree done")
 
+#support vector machine(SVM) training
 svm = SVC(kernel = 'rbf', gamma = 'auto')
 svm.fit(x_train, y_train)
+print("svm done")
 
-cm = confusion_matrix(x_train, x_test, y_train, y_test)
-print(cm)
+#Logistical regression training
+lr = LogisticRegression(max_iter=1000, solver='lbfgs')
+lr.fit(x_train, y_train)
+print("Logistic Regression trained")
+
+
+#getting predictios from all four models
+y_pred_knn = knn.predict(x_test)
+y_pred_lr = lr.predict(x_test)
+y_pred_dt = dt.predict(x_test)
+y_pred_svm = svm.predict(x_test)
+
+#plotting the confusion matrices
+fig, axes = plt.subplots(2,2, figsize=(12,10))
+
+models = [('KNN', y_pred_knn), ('logistic regression', y_pred_lr),
+          ('SVM', y_pred_svm), ('decision tree', y_pred_dt) ]
+
+#confusion matrix
+#confusion matrix is a table that shows the number of correct and incorrect predictions made by the model
+for ax, (name, y_pred) in zip(axes.flatten(), models):
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', ax=ax, cmap='Blues',
+                xticklabels=le.classes_, yticklabels=le.classes_)#annot true adds the numbers to the heatmap fmt d formats the numbers as integers, cmap blues gives it a blue color scheme, xticklabels and yticklabels label the axes with the class names
+    ax.set_title(name)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('actual')
+plt.tight_layout()#
+plt.savefig('cm.png')
+plt.show()
+
+#setting up a bar chart to compare the f1 scores of the four models
+f1_knn = f1_score(y_test, y_pred_knn, average='weighted')
+f1_lr = f1_score(y_test, y_pred_lr, average='weighted')
+f1_dt = f1_score(y_test, y_pred_dt, average='weighted')
+f1_svm = f1_score(y_test, y_pred_svm, average='weighted')
+
+#
+models = ['KNN', 'Logistic Regression', 'Decision Tree', 'SVM']
+f1_scores = [f1_knn, f1_lr, f1_dt, f1_svm]
+
+plt.figure(figsize=(10, 6))
+bars = plt.bar(models, f1_scores, color=['#2196F3','#4CAF50', '#FF9800', '#E91E63'])
+plt.ylim(0.8, 1.0)
+plt.title('F1 Score Comparison Across Classifiers')
+plt.xlabel('Classifier')
+plt.ylabel('Weighted F1 Score')
+
+for bar, score in zip(bars, f1_scores):
+    plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.002,
+             f'{score:.4f}', ha='center', va='bottom', fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('f1_comparison.png')
+plt.show()
+    
+
